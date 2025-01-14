@@ -16,6 +16,9 @@ def home():
 def upload_pdf():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
+@app.route('/healthz')
+def health_check():
+    return "OK", 200
 
     file = request.files['file']
     if file.filename == '':
