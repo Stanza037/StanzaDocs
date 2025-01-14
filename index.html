@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Themed PDF Manager</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        header {
+            background-color: #1f1f1f;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        .container {
+            padding: 20px;
+        }
+        .upload-section {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section input {
+            display: none;
+        }
+        .upload-section label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #333;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pdf-list {
+            margin-top: 20px;
+        }
+        .pdf-item {
+            background-color: #1f1f1f;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pdf-item h3 {
+            margin: 0;
+        }
+        .pdf-item a {
+            color: #4caf50;
+            text-decoration: none;
+            margin-left: 10px;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #1f1f1f;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dark Themed PDF Manager</h1>
+    </header>
+    <div class="container">
+        <div class="upload-section">
+            <label for="pdf-upload">Upload PDF</label>
+            <input type="file" id="pdf-upload" accept="application/pdf" onchange="addPdf(event)">
+        </div>
+        <div class="pdf-list" id="pdf-list">
+            <!-- List of PDFs will be displayed here -->
+        </div>
+    </div>
+    <footer>
+        &copy; 2025 PDF Manager. All Rights Reserved.
+    </footer>
+
+    <script>
+        const adminPassword = "Admin";
+        const userPassword = "Stanza";
+        const enteredPassword = prompt("Enter the access password:");
+
+        async function addPdf(event) {
+            const file = event.target.files[0];
+            if (enteredPassword === adminPassword) {
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        alert(data.message);
+                        fetchPdfList();
+                    } else {
+                        alert('Failed to upload PDF.');
+                    }
+                }
+            } else if (enteredPassword === userPassword) {
+                alert("You have user access. You can only view and download PDFs.");
+            } else {
+                alert("Incorrect password. Access denied.");
+            }
+        }
+
+        async function fetchPdfList() {
+            const response = await fetch('/pdfs');
+            const files = await response.json();
+            const pdfList = document.getElementById('pdf-list');
+            pdfList.innerHTML = '';
+
+            files.forEach(filename => {
+                const pdfItem = document.createElement('div');
+                pdfItem.className = 'pdf-item';
+                pdfItem.innerHTML = `
+                    <h3>${filename}</h3>
+                    <div>
+                        <a href="/pdfs/${filename}" target="_blank">Open</a> | 
+                        <a href="/pdfs/${filename}" download>Download</a> | 
+                        ${enteredPassword === adminPassword ? `<button onclick="deletePdf('${filename}')">Delete</button>` : ''}
+                    </div>
+                `;
+                pdfList.appendChild(pdfItem);
+            });
+        }
+
+        async function deletePdf(filename) {
+            const response = await fetch(`/delete/${filename}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('PDF deleted successfully.');
+                fetchPdfList();
+            } else {
+                alert('Failed to delete PDF.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchPdfList();
+        });
+
+        if (enteredPassword === userPassword) {
+            document.querySelector('.upload-section').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
